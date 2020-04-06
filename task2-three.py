@@ -200,7 +200,7 @@ def prepare_data_for_plots():
 prepare_data_for_plots()
 #print(ticker_prices_dict['yndx'])
 
-#pdf = PdfPages('plot.pdf')
+
 with PdfPages('plot.pdf') as pdf:
     lineplot_with_date(ticker_dates_dict[ tickers_for_plots[0] ],
                    ticker_prices_dict[ tickers_for_plots[0] ],

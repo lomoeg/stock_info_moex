@@ -7,7 +7,7 @@ import matplotlib.dates
 from matplotlib.backends.backend_pdf import PdfPages
 
 input_file = 'tickers.csv'
-output_file = 'tickers_output-2.csv'
+output_file = 'stock_info.csv'
 
 # numbers of columns in response table from iss.moex.com
 tradedata_id = 1
@@ -22,6 +22,7 @@ fn_last_available_price = 'last_price'
 fn_movavrg = 'moving average'
 
 today = datetime.datetime.today().strftime("%Y-%m-%d")
+today_date = datetime.datetime.today()
 
 # write headers to output file
 fout = open(output_file, 'w', newline='')
@@ -92,7 +93,6 @@ def company_info(ticker, start_date, end_date):
 
             if mov_avrg is not None:
                  res_mov_avrg = round(mov_avrg, 2)
-                 #print(res_mov_avrg)
             else:
                 res_mov_avrg = None
 
@@ -105,7 +105,6 @@ def company_info(ticker, start_date, end_date):
             response_data = requests.get(url).json()['history']['data']
         except Exception as err:
             print("Error: " + str(err))
-        # --------------------------------------
         start += 100
 
 
@@ -114,7 +113,6 @@ def company_info(ticker, start_date, end_date):
              ".json?iss.meta=off&marketdata.columns=LAST"
     try:
         last_available_price = requests.get(url_lp).json()["marketdata"]["data"][0][0]
-        print(type(last_available_price))
         if last_available_price is not None:
             writer.writerow({fn_shortticker: ticker, fn_tradedate: today, fn_closeprice: last_available_price, fn_movavrg: None})
     except IndexError:
@@ -145,12 +143,12 @@ with open(input_file, newline='') as csvfile:
 st = '2017-03-02'   # start date
 
 # fill in tickers list
-# for ticker in tickers_list:
-#    company_info(ticker, st, today)
+for ticker in tickers_list:
+   company_info(ticker, st, today)
 
-company_info('yndx', st, today)
+# company_info('yndx', st, today)
 # company_info('zill', st, today)
-company_info('aflt', st, today)
+# company_info('aflt', st, today)
 
 fout.close()
 vol_file.close()
@@ -160,7 +158,7 @@ vol_file.close()
 # Find tickers and make plots for them
 vol_np = {k: v for k, v in sorted(vol_np.items(), key=lambda item: item[1], reverse=True)}
 tickers_for_plots = [list(vol_np.keys())[0], list(vol_np.keys())[1]]
-print(tickers_for_plots)
+print(vol_np)
 # first_ticker = list(vol_np.keys())[0]
 # second_ticker = list(vol_np.keys())[1]
 
@@ -193,15 +191,16 @@ def prepare_data_for_plots():
         for csv_line in reader:
             if csv_line[fn_shortticker] in tickers_for_plots:
                 tick = str(csv_line[fn_shortticker])
-                ticker_dates_dict[tick].append( datetime.datetime.strptime(csv_line[fn_tradedate], '%Y-%m-%d').date() )
-                ticker_prices_dict[tick].append( float(csv_line[fn_closeprice]) )
+                date = datetime.datetime.strptime(csv_line[fn_tradedate], '%Y-%m-%d').date()
+                if today_date.year - 2 <= date.year:
+                    ticker_dates_dict[tick].append(date)
+                    ticker_prices_dict[tick].append(float(csv_line[fn_closeprice]))
 
 
 prepare_data_for_plots()
 #print(ticker_prices_dict['yndx'])
 
-#pdf = PdfPages('plot.pdf')
-with PdfPages('plot.pdf') as pdf:
+with PdfPages('max_volatility.pdf') as pdf:
     lineplot_with_date(ticker_dates_dict[ tickers_for_plots[0] ],
                    ticker_prices_dict[ tickers_for_plots[0] ],
                    "Dates",
@@ -213,5 +212,3 @@ with PdfPages('plot.pdf') as pdf:
                    "Dates",
                    "Prices",
                    tickers_for_plots[1] + " prices chart")
-
-#pdf.savefig()
